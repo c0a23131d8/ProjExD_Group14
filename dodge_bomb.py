@@ -19,6 +19,35 @@ DELTA = {pg.K_UP: (0, -5),
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+class Ball:
+    def __init__(self, pos: tuple[int, int], target_pos: tuple[int, int]):
+        self.image = pg.transform.rotozoom(pg.image.load("fig/ball.png"), 0, 0.1)
+        self.rect = self.image.get_rect(center=pos)
+
+        # こうかとんに向かって進むようにするための速度を計算
+        dx, dy = target_pos[0] - pos[0], target_pos[1] - pos[1]
+        distance = math.hypot(dx, dy)
+        self.speed = (dx / distance * 5, dy / distance * 5)  # 速度の正規化
+
+    def update(self, screen: pg.Surface):
+        """
+        ボールを画面内で移動させる
+        """
+        self.rect.move_ip(self.speed)
+        screen.blit(self.image, self.rect)
+
+        # 画面外に出たボールを削除
+        if self.rect.left > WIDTH or self.rect.right < 0 or self.rect.top > HEIGHT or self.rect.bottom < 0:
+            return False  # 削除フラグ
+        return True
+    
+# ボールとこうかとんの円形当たり判定を実装
+def is_colliding(circle1, circle2):
+    # 2つの円の中心間の距離を計算
+    distance = math.hypot(circle1.centerx - circle2.centerx, circle1.centery - circle2.centery)
+    # 2つの円の半径の合計が距離以下であれば衝突
+    return distance <= (circle1.width / 2 + circle2.width / 2) * 0.8
+
 def check_bound(obj_rct: pg.rect) -> tuple[bool, bool]:
     yoko, tate = True, True
     if obj_rct.left < WIDTH*2/5 or WIDTH*3/5 < obj_rct.right:
@@ -154,7 +183,6 @@ def enemy(num, screen: pg.surface):
         screen.blit(en_img5,en_rct5)
         stageEX()
 
-
 def stage1(bird_rct, screen, tmr):
     global bombs
     bomb_speed = 10 # 弾の速度
@@ -190,9 +218,21 @@ def stage1(bird_rct, screen, tmr):
         if not screen.get_rect().colliderect(bomb["rect"]):
             bombs.remove(bomb)
 
-def stage2():
-    return 0
-
+def stage2(screen: pg.Surface, bird: Bird, balls: list):
+    # 8%の確率で新しいボールを生成する
+    if random.random() < 0.08:
+        # ボールの発射位置を画面右端の上下50ピクセル以内でランダムに設定
+        launch_y = HEIGHT // 2 + random.randint(-50, 50)
+        # 新しいボールを生成し、こうかとんの中心をターゲットに設定
+        ball = Ball((WIDTH - 100, launch_y), bird.rct.center)
+        # ボールリストに生成したボールを追加
+        balls.append(ball)
+    for ball in balls[:]:
+        if not ball.update(screen):
+            balls.remove(ball)
+        if is_colliding(ball.rect, bird.rct):
+            gameover(screen)
+            return
 
 def stage3(screen,en_rct3,en_rct4):
 
@@ -514,6 +554,8 @@ def main():
     
     clock = pg.time.Clock()
     tmr = 0
+    balls = []  # ボールのリスト
+
     while True:
         elapsed_time = time.time() - start_time
         
