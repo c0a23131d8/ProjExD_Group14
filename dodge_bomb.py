@@ -156,41 +156,6 @@ def stage2():
     return 0
 
 def stage3():
-    # ゲーム初期化
-    pg.init()
-    screen = pg.display.set_mode((WIDTH, HEIGHT))
-    # ...
-
-    # オブジェクト生成
-    player = Player()
-    bombs = []
-
-    # ゲームループ
-    running = True
-    while running:
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                running = False
-
-        # 更新処理
-        player.update(keys)
-        for bomb in bombs:
-            bomb.update(player.rect)
-
-        # 描画処理
-        screen.blit(bg_img, [0, 0])
-        player.draw(screen)
-        for bomb in bombs:
-            bomb.draw(screen)
-
-        # 衝突判定
-        for bomb in bombs:
-            if player.rect.colliderect(bomb.rect):
-                game_over(screen, player.image)
-                running = False
-
-        pg.display.update()
-        clock.tick(50)
     return 0
 
 def stageEX():
