@@ -3,6 +3,7 @@ import pygame as pg
 import random
 import sys
 import time
+import math
 
 
 WIDTH, HEIGHT = 1100, 650
@@ -117,7 +118,7 @@ def enemy(num,screen: pg.surface):
         en_rct1.centerx = 150
         en_rct1.centery = HEIGHT/2
         screen.blit(en_img1,en_rct1)
-        stage1()
+        
 
     elif num == 2:
         en_img2 = pg.transform.rotozoom(pg.image.load("fig/en1.png"),0,0.4)
@@ -149,8 +150,41 @@ def enemy(num,screen: pg.surface):
         stageEX()
 
 
-def stage1():
-    return 0
+def stage1(bird_rct, screen, tmr):
+    global bombs
+    bomb_speed = 7  # 弾の速度
+
+    # 5秒（50フレーム * 5）おきに三日月状の弾幕を発射
+    if tmr % (50 * 5) == 0:
+        bombs = []
+        center_x = 150  # 弾幕の中心X座標（敵から）
+        center_y = HEIGHT // 2  # 弾幕の中心Y座標（画面中央）
+        num_bombs = 10  # 三日月状の弾の数
+        angle_offset = math.radians(15)  # 各弾の角度間隔
+
+        for i in range(num_bombs):
+            angle = math.pi + angle_offset * (i - num_bombs // 2)
+            vx = bomb_speed * math.cos(angle)*-1
+            vy = bomb_speed * math.sin(angle)
+            bomb = {
+                "rect": pg.Rect(center_x, center_y, 10, 10),  # 弾の矩形（小さい円形）
+                "vx": vx,
+                "vy": vy
+            }
+            bombs.append(bomb)
+
+    # 各弾の位置を更新し、画面に描画する
+    for bomb in bombs[:]:
+        bomb["rect"].move_ip(bomb["vx"], bomb["vy"])
+        pg.draw.ellipse(screen, (255, 0, 0), bomb["rect"])
+
+        # こうかとんと弾の衝突判定
+        if bird_rct.colliderect(bomb["rect"]):
+            gameover(screen)
+
+        # 画面外に出た弾をリストから削除
+        if not screen.get_rect().colliderect(bomb["rect"]):
+            bombs.remove(bomb)
 
 def stage2():
     return 0
@@ -195,6 +229,10 @@ def main():
 
         bird.update(key_lst, screen)
         enemy(stage,screen)
+
+        if stage == 1:
+            stage1(bird.rct, screen, tmr)
+
         timescore()
         skill()
         pg.display.update()
