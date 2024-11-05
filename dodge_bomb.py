@@ -3,13 +3,18 @@ import pygame as pg
 import random
 import sys
 import time
+import pygame
 import math
 
+
+
 WIDTH, HEIGHT = 1100, 650
-DELTA = {pg.K_UP:   ( 0,-5),
-         pg.K_DOWN: ( 0,+5),
+start_time = None  
+time_limit = 6
+DELTA = {pg.K_UP: (0, -5),
+         pg.K_DOWN: (0, +5),
          pg.K_LEFT: (-5, 0),
-         pg.K_RIGHT:(+5, 0),
+         pg.K_RIGHT: (+5, 0),
          }
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -50,38 +55,57 @@ def check_bound(obj_rct: pg.rect) -> tuple[bool, bool]:
     if obj_rct.top < 0 or HEIGHT < obj_rct.bottom:
         tate = False
     
-    return yoko, tate
+    return yoko,tate
 
 class Bird:
-    delta = {  
+    """
+    ゲームキャラクター（こうかとん）に関するクラス
+    """
+    delta = {  # 押下キーと移動量の辞書
         pg.K_UP: (0, -5),
         pg.K_DOWN: (0, +5),
         pg.K_LEFT: (-5, 0),
         pg.K_RIGHT: (+5, 0),
     }
     img0 = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
-    img = pg.transform.flip(img0, True, False)  
-    imgs = {  
-        (+5, 0): img,  
-        (+5, -5): pg.transform.rotozoom(img, 45, 0.9),  
-        (0, -5): pg.transform.rotozoom(img, 90, 0.9),  
-        (-5, -5): pg.transform.rotozoom(img0, -45, 0.9),  
-        (-5, 0): img0,  
-        (-5, +5): pg.transform.rotozoom(img0, 45, 0.9),  
-        (0, +5): pg.transform.rotozoom(img, -90, 0.9),  
-        (+5, +5): pg.transform.rotozoom(img, -45, 0.9),  
+    img = pg.transform.flip(img0, True, False)  # デフォルトのこうかとん（右向き）
+    imgs = {  # 0度から反時計回りに定義
+        (+5, 0): img,  # 右
+        (+5, -5): pg.transform.rotozoom(img, 45, 0.9),  # 右上
+        (0, -5): pg.transform.rotozoom(img, 90, 0.9),  # 上
+        (-5, -5): pg.transform.rotozoom(img0, -45, 0.9),  # 左上
+        (-5, 0): img0,  # 左
+        (-5, +5): pg.transform.rotozoom(img0, 45, 0.9),  # 左下
+        (0, +5): pg.transform.rotozoom(img, -90, 0.9),  # 下
+        (+5, +5): pg.transform.rotozoom(img, -45, 0.9),  # 右下
     }
 
     def __init__(self, xy: tuple[int, int]):
+        """
+        こうかとん画像Surfaceを生成する
+        引数 xy：こうかとん画像の初期位置座標タプル
+        """
         self.img = __class__.imgs[(+5, 0)]
         self.rct: pg.Rect = self.img.get_rect()
         self.rct.center = xy
+        self.has_barrier = False
+        self.is_invincible = False
 
     def change_img(self, num: int, screen: pg.Surface):
+        """
+        こうかとん画像を切り替え，画面に転送する
+        引数1 num：こうかとん画像ファイル名の番号
+        引数2 screen：画面Surface
+        """
         self.img = pg.transform.rotozoom(pg.image.load(f"fig/{num}.png"), 0, 0.9)
         screen.blit(self.img, self.rct)
 
     def update(self, key_lst: list[bool], screen: pg.Surface):
+        """
+        押下キーに応じてこうかとんを移動させる
+        引数1 key_lst：押下キーの真理値リスト
+        引数2 screen：画面Surface
+        """
         sum_mv = [0, 0]
         for k, mv in __class__.delta.items():
             if key_lst[k]:
@@ -94,6 +118,18 @@ class Bird:
             self.img = __class__.imgs[tuple(sum_mv)]
         screen.blit(self.img, self.rct)
 
+        if self.has_barrier:
+            self.activate_barrier(screen)
+        if self.is_invincible:
+            self.activate_invincibility(screen)
+
+    def activate_barrier(self, screen):
+        pg.draw.circle(screen, (0, 0, 255), self.rct.center, self.rct.width, width=5)
+
+    def activate_invincibility(self, screen):
+        pg.draw.circle(screen, (255, 215, 0), self.rct.center, self.rct.width, width=5)
+
+
 def gameover(screen):
     black = pg.Surface((WIDTH, HEIGHT))
     pg.draw.rect(black, (0, 0, 0), (0, 0, WIDTH, HEIGHT))
@@ -103,28 +139,28 @@ def gameover(screen):
     cry_rct = cry_img.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
     screen.blit(cry_img, cry_rct)
     fonto = pg.font.Font(None, 80)
-    txt = fonto.render("GameOver", True, (0, 150, 255))
-    txt_rct = txt.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    txt = fonto.render("Game Over", True, (0, 150, 255))
+    txt_rct = txt.get_rect()
+    txt_rct.center = WIDTH // 2, HEIGHT // 2
     screen.blit(txt, txt_rct)
     pg.display.update()
     time.sleep(5)
 
-def enemy(num,screen: pg.surface):
+def enemy(num, screen: pg.surface):
     if num == 1:
-        en_img1 = pg.transform.rotozoom(pg.image.load("fig/DQMJ2.webp"),0,0.6)
+        en_img1 = pg.transform.rotozoom(pg.image.load("fig/DQMJ2.webp"), 0, 0.6)
         en_rct1 = en_img1.get_rect()
         en_rct1.centerx = 150
         en_rct1.centery = HEIGHT/2
         screen.blit(en_img1,en_rct1)
-        stage1()
 
     elif num == 2:
-        en_img2 = pg.transform.rotozoom(pg.image.load("fig/en1.png"),0,0.4)
+        en_img2 = pg.transform.rotozoom(pg.image.load("fig/en1.png"), 0, 0.4)
         en_rct2 = en_img2.get_rect()
         en_rct2.centerx = WIDTH-150
         en_rct2.centery = HEIGHT/2
         screen.blit(en_img2,en_rct2)
-      
+        stage2()
 
     elif num == 3:
         en_img3 = pg.transform.rotozoom(pg.image.load("fig/en5.png"),0,1)
@@ -137,7 +173,7 @@ def enemy(num,screen: pg.surface):
         en_rct4.centery = HEIGHT/2
         screen.blit(en_img3,en_rct3)
         screen.blit(en_img4,en_rct4)
-        stage3()
+        stage3(screen,en_rct3,en_rct4)
 
     elif num == 4:
         en_img5 = pg.transform.rotozoom(pg.image.load("fig/en7.png"),0,0.6)
@@ -146,8 +182,41 @@ def enemy(num,screen: pg.surface):
         en_rct5.centery = HEIGHT/2
         screen.blit(en_img5,en_rct5)
         stageEX()
-def stage1():
-    return 0
+
+def stage1(bird_rct, screen, tmr):
+    global bombs
+    bomb_speed = 10 # 弾の速度
+
+    if tmr % (50 * 3) == 0:
+        bombs = []
+        center_x = 150  # 弾幕の中心X座標（敵から）
+        center_y = HEIGHT // 2  # 弾幕の中心Y座標（画面中央）
+        num_bombs = 7 # 三日月状の弾の数
+        angle_offset = math.radians(15)  # 各弾の角度間隔
+
+        for i in range(num_bombs):
+            angle = math.pi + angle_offset * (i - num_bombs // 2)
+            vx = bomb_speed * math.cos(angle)*-1
+            vy = bomb_speed * math.sin(angle)
+            bomb = {
+                "rect": pg.Rect(center_x, center_y, 15, 15),  # 弾の矩形（小さい円形）
+                "vx": vx,
+                "vy": vy
+            }
+            bombs.append(bomb)
+
+    # 各弾の位置を更新し、画面に描画する
+    for bomb in bombs[:]:
+        bomb["rect"].move_ip(bomb["vx"], bomb["vy"])
+        pg.draw.ellipse(screen, (255, 0, 0), bomb["rect"])
+
+        # こうかとんと弾の衝突判定
+        if bird_rct.colliderect(bomb["rect"]):
+            gameover(screen)
+
+        # 画面外に出た弾をリストから削除
+        if not screen.get_rect().colliderect(bomb["rect"]):
+            bombs.remove(bomb)
 
 def stage2(screen: pg.Surface, bird: Bird, balls: list):
     # 8%の確率で新しいボールを生成する
@@ -165,58 +234,364 @@ def stage2(screen: pg.Surface, bird: Bird, balls: list):
             gameover(screen)
             return
 
-def stage3():
-    return 0
+def stage3(screen,en_rct3,en_rct4):
+
+    def create_bomb_surfaces_and_accelerations() -> tuple[list[pg.Surface], list[int]]:
+        bb_imgs = []
+        bb_accs = [a for a in range(1, 11)]
+        for r in range(1, 11):
+            bb_img = pg.Surface((20*r, 20*r), pg.SRCALPHA)
+            pg.draw.circle(bb_img, (255, 0, 0), (10*r, 10*r), 10*r)
+            bb_imgs.append(bb_img)
+        return bb_imgs, bb_accs
+
+    def calculate_velocity(kk_rct: pg.Rect, bb_rct: pg.Rect) -> tuple[float, float]:
+        diff_x = kk_rct.centerx - bb_rct.centerx
+        diff_y = kk_rct.centery - bb_rct.centery
+        distance = math.sqrt(diff_x**2 + diff_y**2)
+        if distance != 0:
+            norm = 5
+            new_vx = (diff_x / distance) * norm
+            new_vy = (diff_y / distance) * norm
+        else:
+            new_vx, new_vy = 0, 0
+        return new_vx, new_vy
+
+    kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
+    bb_imgs, bb_accs = create_bomb_surfaces_and_accelerations()
+    kk_rct = kk_img.get_rect()
+    kk_rct.center = 500, 300
+    
+    bomb_list = []
+
+    def create_new_bomb():
+        bb_rct = bb_imgs[0].get_rect()
+        bb_rct.centerx = random.randint(0, WIDTH)
+        bb_rct.centery = random.randint(0, HEIGHT)
+        bomb_list.append({"rect": bb_rct, "step": 0})
+
+    clock = pg.time.Clock()
+    tmr = 0
+
+    create_new_bomb()  # 最初の爆弾を生成
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            return
+
+    # 時間経過で新しい爆弾を追加
+    if tmr % 1000 == 0:  # 1000フレームごとに新しい爆弾を生成
+        create_new_bomb()
+
+    for bomb in bomb_list:
+        bomb["step"] = min(tmr // 500, 9)
+        bb_img = bb_imgs[bomb["step"]]
+        bb_rct = bb_img.get_rect(center=bomb["rect"].center)
+
+        avx, avy = calculate_velocity(kk_rct, bb_rct)
+        bb_rct.move_ip(avx, avy)
+        bomb["rect"] = bb_rct
+        screen.blit(bb_img, bb_rct)
+
+        if kk_rct.colliderect(bb_rct) or kk_rct.colliderect(en_rct4) or kk_rct.colliderect(en_rct3):
+            gameover(screen)
+            return
 
 def stageEX():
-    return 0
+    global game_over, circle_bomb_timer, random_bomb_timer, cross_bomb_timer, chase_bomb_timer
+    clock = pygame.time.Clock()
 
-def timescore():
-    return 0
+    running = True
 
-def skill():
-    return 0
+    pygame.init()
+
+    # 背景画像の読み込み
+    background_image = pygame.image.load("fig/bg.jpg")  # 背景画像
+    background_width, background_height = background_image.get_size()
+
+    # 画面サイズを背景画像のサイズに設定
+    WIDTH, HEIGHT = 1100 , 650
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("StageEX")
+
+    # 色の設定
+    BLACK = (0, 0, 0)
+    RED = (255, 0, 0)
+    PURPLE = (128, 0, 128)  # 円形爆弾の色
+    GREEN = (0, 255, 0)  # ランダム生成の爆弾の色
+    BLUE = (0, 0, 255)  # 追尾弾の色
+
+    # ボスキャラの画像の読み込みとサイズ変更
+    boss_image = pygame.image.load("fig/en7.png")
+    boss_image = pygame.transform.scale(boss_image, (boss_image.get_width() // 4, boss_image.get_height() // 4))  # サイズをさらに小さく
+    boss_rect = boss_image.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+
+    # プレイヤーキャラクターの画像の読み込みとサイズ変更
+    player_image = pygame.image.load("fig/9.png")  # プレイヤーキャラクターの画像
+    player_image = pygame.transform.scale(player_image, (30, 30))  # サイズを調整
+    player_rect = player_image.get_rect(center=(WIDTH // 2, HEIGHT - 50))  # 初期位置を設定
+
+    # 爆弾の設定
+    BOMB_RADIUS = 10
+    bombs = []
+    chase_bombs = []  # 追尾弾のリスト
+
+    # タイマーの初期化
+    circle_bomb_timer = pygame.time.get_ticks()
+    random_bomb_timer = pygame.time.get_ticks()
+    cross_bomb_timer = pygame.time.get_ticks()
+    chase_bomb_timer = pygame.time.get_ticks()
+
+    # ゲームオーバーフラグ
+    game_over = False
+    font = pygame.font.SysFont(None, 55)
+
+    # スコアの初期化
+    score = 0
+    start_time = pygame.time.get_ticks()  # ゲーム開始時刻
+
+    def draw_circle_bomb(x, y):
+        pygame.draw.circle(screen, PURPLE, (x, y), BOMB_RADIUS)  # 円形爆弾を紫に描画
+
+    def draw_random_bomb(x, y):
+        pygame.draw.circle(screen, GREEN, (x, y), BOMB_RADIUS)  # ランダム爆弾を緑に描画
+
+    def draw_chase_bomb(x, y):
+        pygame.draw.circle(screen, BLUE, (x, y), BOMB_RADIUS)  # 追尾弾を青に描画
+
+    def draw_game_over():
+        screen.fill(BLACK)
+        text = font.render("Game Over", True, RED)
+        text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        screen.blit(text, text_rect)
+
+    def draw_score():
+        text = font.render(f"Score: {score}", True, RED)
+        screen.blit(text, (10, 10))  # スコアを画面の左上に描画
+
+    while running:
+        # 背景画像を描画
+        screen.blit(background_image, (0, 0))
+        
+        # ボスキャラを描画
+        screen.blit(boss_image, boss_rect)
+
+        # 現在の時刻を取得
+        current_time = pygame.time.get_ticks()
+
+        # スコアを更新（経過時間に比例）
+        elapsed_time = (current_time - start_time) // 1000  # 経過時間を秒単位で取得
+        score = elapsed_time  # スコアを経過時間に設定
+
+        # 円形に爆弾を飛ばす（5秒ごと）
+        if current_time - circle_bomb_timer >= 3000:
+            circle_bomb_timer = current_time
+            for angle in range(0, 360, 45):  # 45度間隔で爆弾を配置
+                rad = math.radians(angle)
+                x = boss_rect.centerx + 100 * math.cos(rad)
+                y = boss_rect.centery + 100 * math.sin(rad)
+                bombs.append((x, y, 'circle'))  # 爆弾タイプを指定
+
+        # ランダムな位置に爆弾を描画（0.5秒ごとに3個）
+        if current_time - random_bomb_timer >= 500:  # 生成間隔を0.5秒に設定
+            random_bomb_timer = current_time
+            for _ in range(3):  # 3個生成
+                while True:
+                    x = random.randint(0, WIDTH)
+                    y = random.randint(0, HEIGHT)
+                    # ボスの領域内に生成されないか確認
+                    if not boss_rect.collidepoint((x, y)):
+                        bombs.append((x, y, 'random'))  # 爆弾タイプを指定
+                        break
+
+        # 十字型に爆弾を描画（3秒ごと）
+        if current_time - cross_bomb_timer >= 3000:
+            cross_bomb_timer = current_time
+            for i in range(-200, 201, 50):
+                bombs.append((boss_rect.centerx + i, boss_rect.centery, 'cross'))  # 爆弾タイプを指定
+                bombs.append((boss_rect.centerx, boss_rect.centery + i, 'cross'))  # 爆弾タイプを指定
+
+        # 追尾弾を生成（2秒ごとに10個）
+        if current_time - chase_bomb_timer >= 2000:
+            chase_bomb_timer = current_time
+            for _ in range(10):  # 3つの追尾弾を生成
+                chase_bombs.append([boss_rect.centerx, boss_rect.centery])  # ボスの位置から生成
+
+        # 追尾弾の動き
+        for chase_bomb in chase_bombs:
+            # 追尾弾がプレイヤーの位置に向かって移動
+            chase_bomb[0] += (player_rect.centerx - chase_bomb[0]) * 0.05  # X方向の移動
+            chase_bomb[1] += (player_rect.centery - chase_bomb[1]) * 0.05  # Y方向の移動
+
+        # 爆弾を描画し、プレイヤーとの接触を確認
+        for bomb in bombs:
+            if bomb[2] == 'circle':
+                draw_circle_bomb(bomb[0], bomb[1])  # 円形爆弾を描画
+            elif bomb[2] == 'random':
+                draw_random_bomb(bomb[0], bomb[1])  # ランダム爆弾を描画
+            
+            # 爆弾とプレイヤーの当たり判定
+            if player_rect.colliderect(pygame.Rect(bomb[0] - BOMB_RADIUS, bomb[1] - BOMB_RADIUS, BOMB_RADIUS * 2, BOMB_RADIUS * 2)):
+                game_over = True
+
+        # 追尾弾を描画し、プレイヤーとの接触を確認
+        for chase_bomb in chase_bombs:
+            draw_chase_bomb(chase_bomb[0], chase_bomb[1])  # 追尾弾を描画
+            # 追尾弾とプレイヤーの当たり判定
+            if player_rect.colliderect(pygame.Rect(chase_bomb[0] - BOMB_RADIUS, chase_bomb[1] - BOMB_RADIUS, BOMB_RADIUS * 2, BOMB_RADIUS * 2)):
+                game_over = True
+
+        # ボスキャラとプレイヤーの当たり判定
+        if boss_rect.colliderect(player_rect):
+            game_over = True
+
+        # ゲームオーバーの処理
+        if game_over:
+            draw_game_over()
+        else:
+            # スコアを描画
+            draw_score()
+
+            # プレイヤーを描画
+            screen.blit(player_image, player_rect)  # プレイヤー画像を描画
+
+            # キーの状態をチェックして移動を行う
+            keys = pygame.key.get_pressed()  # 押されているキーを取得
+            if keys[pygame.K_UP]:
+                player_rect.y -= 5  # 上に移動
+            if keys[pygame.K_DOWN]:
+                player_rect.y += 5  # 下に移動
+            if keys[pygame.K_LEFT]:
+                player_rect.x -= 5  # 左に移動
+            if keys[pygame.K_RIGHT]:
+                player_rect.x += 5  # 右に移動
+
+            # プレイヤーが画面外に出ないように制限
+            player_rect.clamp_ip(pygame.Rect(0, 0, WIDTH, HEIGHT))  # 画面内に留まるように制限
+
+        # イベント処理
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        # 画面を更新
+        pygame.display.flip()
+        clock.tick(60)  # フレームレートを設定（60 FPS）
+
+    pygame.quit()
+
+
+def timescore(screen, stage):
+    global start_time
+    if start_time is None:
+        start_time = time.time() 
+
+    spent_time = time.time() - start_time
+    end_time = max(0, time_limit - spent_time)
+
+    font = pg.font.Font(None, 36)
+    time_text = font.render(f" Time : {int(end_time)} s", True, (255, 255, 255))
+    screen.blit(time_text, (10, 10))
+
+    # EXステージでのクリア表示
+    if stage == 4 and end_time <= 0:
+        black_scr = pg.Surface((WIDTH, HEIGHT))
+        pg.draw.rect(black_scr, (0, 0, 0), black_scr.get_rect())
+        black_scr.set_alpha(180)
+        screen.blit(black_scr, (0, 0))
+
+        kk_img = pg.transform.rotozoom(pg.image.load("fig/6.png"), 0, 0.9)
+        kk_rct = kk_img.get_rect()
+        kk_rct.center = WIDTH / 2 + 200, HEIGHT / 2
+        screen.blit(kk_img, kk_rct)
+        kk_rct.center = WIDTH / 2 - 200, HEIGHT / 2
+        screen.blit(kk_img, kk_rct)
+
+        clear_font = pg.font.Font(None, 80)
+        clear_text = clear_font.render("Game clear!!", True, (255, 0, 0))
+        clear_rect = clear_text.get_rect()
+        clear_rect.center = WIDTH / 2, HEIGHT / 2
+        screen.blit(clear_text, clear_rect)
+        pg.display.update()
+
+        time.sleep(3)
+        pg.quit()
+        sys.exit() 
+
+    elif end_time <= 0:
+        black_scr = pg.Surface((WIDTH, HEIGHT))
+        black_scr.fill((0, 0, 0))
+        black_scr.set_alpha(180)
+        screen.blit(black_scr, (0, 0))
+    
+        msg_font = pg.font.Font(None, 40)
+        msg_text = msg_font.render("Press 'N' to proceed to the next stage", True, (255, 255, 255))
+        msg_rect = msg_text.get_rect()
+        msg_rect.center = WIDTH / 2, HEIGHT / 2
+        screen.blit(msg_text, msg_rect)
+        pg.display.update()
+
+        waiting = True
+        while waiting:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
+                    sys.exit()
+                elif event.type == pg.KEYDOWN and event.key == pg.K_n:
+                    waiting = False
+                    start_time = None
+
+        return stage + 1
+
+    return stage
+
 def main():
     pg.display.set_caption("避けろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
-    bg_img = pg.transform.rotozoom(pg.image.load("fig/bg.png"), 0, 1.9)
+    bg_img = pg.transform.rotozoom(pg.image.load("fig/bg.jpg"), 0, 1.0)    
     bird = Bird([WIDTH / 2, HEIGHT / 2])
-    stage = 2
-
+    stage = 1
+    start_time = time.time()
+    
     clock = pg.time.Clock()
     tmr = 0
     balls = []  # ボールのリスト
 
     while True:
+        elapsed_time = time.time() - start_time
+        
         for event in pg.event.get():
-            if event.type == pg.QUIT: 
+            if event.type == pg.QUIT:
                 return
-        screen.blit(bg_img, [0, 0]) 
+
+        screen.blit(bg_img, [0, 0])
 
         key_lst = pg.key.get_pressed()
-        sum_mv =[0,0]
+        bird.update(key_lst, screen)
 
+        # 30秒後にバリアが有効、60秒後に無敵が有効
+        if elapsed_time > 30 and not bird.has_barrier:
+            bird.has_barrier = True
+        if elapsed_time > 60 and not bird.is_invincible:
+            bird.is_invincible = True
 
-        for key,tpl in DELTA.items():
-            if key_lst[key]:
-                sum_mv[0] += tpl[0]
-                sum_mv[1] += tpl[1]
+        enemy(stage, screen)
+        if stage == 1:
+            stage1(bird.rct, screen, tmr)
+        sum_mv = [0, 0]
+
         bird.update(key_lst, screen)
         enemy(stage,screen)
-        if stage == 1:
-            stage1()
-        elif stage == 2:
-            stage2(screen, bird, balls)  # stage2にscreen, bird, ballsを渡す
-
-        timescore()
-        skill()
+        stage = timescore(screen, stage)
         pg.display.update()
         tmr += 1
         clock.tick(50)
-
+        if stage == 4:
+            stageEX()
 
 if __name__ == "__main__":
     pg.init()
     main()
     pg.quit()
     sys.exit()
+
+
