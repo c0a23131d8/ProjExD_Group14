@@ -8,7 +8,7 @@ import math
 
 WIDTH, HEIGHT = 1100, 650
 start_time = None  
-time_limit = 60
+time_limit = 6
 DELTA = {pg.K_UP: (0, -5),
          pg.K_DOWN: (0, +5),
          pg.K_LEFT: (-5, 0),
@@ -122,7 +122,7 @@ def enemy(num, screen: pg.surface):
         en_rct1.centerx = 150
         en_rct1.centery = HEIGHT/2
         screen.blit(en_img1,en_rct1)
-        
+
     elif num == 2:
         en_img2 = pg.transform.rotozoom(pg.image.load("fig/en1.png"), 0, 0.4)
         en_rct2 = en_img2.get_rect()
@@ -142,7 +142,7 @@ def enemy(num, screen: pg.surface):
         en_rct4.centery = HEIGHT/2
         screen.blit(en_img3,en_rct3)
         screen.blit(en_img4,en_rct4)
-        stage3()
+        stage3(screen,en_rct3,en_rct4)
 
     elif num == 4:
         en_img5 = pg.transform.rotozoom(pg.image.load("fig/en7.png"),0,0.6)
@@ -191,8 +191,68 @@ def stage1(bird_rct, screen, tmr):
 def stage2():
     return 0
 
-def stage3():
-    return 0
+
+def stage3(screen,en_rct3,en_rct4):
+
+    def create_bomb_surfaces_and_accelerations() -> tuple[list[pg.Surface], list[int]]:
+        bb_imgs = []
+        bb_accs = [a for a in range(1, 11)]
+        for r in range(1, 11):
+            bb_img = pg.Surface((20*r, 20*r), pg.SRCALPHA)
+            pg.draw.circle(bb_img, (255, 0, 0), (10*r, 10*r), 10*r)
+            bb_imgs.append(bb_img)
+        return bb_imgs, bb_accs
+
+    def calculate_velocity(kk_rct: pg.Rect, bb_rct: pg.Rect) -> tuple[float, float]:
+        diff_x = kk_rct.centerx - bb_rct.centerx
+        diff_y = kk_rct.centery - bb_rct.centery
+        distance = math.sqrt(diff_x**2 + diff_y**2)
+        if distance != 0:
+            norm = 5
+            new_vx = (diff_x / distance) * norm
+            new_vy = (diff_y / distance) * norm
+        else:
+            new_vx, new_vy = 0, 0
+        return new_vx, new_vy
+
+    kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
+    bb_imgs, bb_accs = create_bomb_surfaces_and_accelerations()
+    kk_rct = kk_img.get_rect()
+    kk_rct.center = 500, 300
+    
+    bomb_list = []
+
+    def create_new_bomb():
+        bb_rct = bb_imgs[0].get_rect()
+        bb_rct.centerx = random.randint(0, WIDTH)
+        bb_rct.centery = random.randint(0, HEIGHT)
+        bomb_list.append({"rect": bb_rct, "step": 0})
+
+    clock = pg.time.Clock()
+    tmr = 0
+
+    create_new_bomb()  # 最初の爆弾を生成
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            return
+
+    # 時間経過で新しい爆弾を追加
+    if tmr % 1000 == 0:  # 1000フレームごとに新しい爆弾を生成
+        create_new_bomb()
+
+    for bomb in bomb_list:
+        bomb["step"] = min(tmr // 500, 9)
+        bb_img = bb_imgs[bomb["step"]]
+        bb_rct = bb_img.get_rect(center=bomb["rect"].center)
+
+        avx, avy = calculate_velocity(kk_rct, bb_rct)
+        bb_rct.move_ip(avx, avy)
+        bomb["rect"] = bb_rct
+        screen.blit(bb_img, bb_rct)
+
+        if kk_rct.colliderect(bb_rct) or kk_rct.colliderect(en_rct4) or kk_rct.colliderect(en_rct3):
+            gameover(screen)
+            return
 
 def stageEX():
     return 0
@@ -260,11 +320,6 @@ def timescore(screen, stage):
         return stage + 1
 
     return stage
-
-
-
-def skill():
-    return 0
 
 def main():
     pg.display.set_caption("避けろ！こうかとん")
