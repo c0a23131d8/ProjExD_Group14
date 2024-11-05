@@ -152,14 +152,13 @@ def enemy(num,screen: pg.surface):
 
 def stage1(bird_rct, screen, tmr):
     global bombs
-    bomb_speed = 7  # 弾の速度
+    bomb_speed = 10 # 弾の速度
 
-    # 5秒（50フレーム * 5）おきに三日月状の弾幕を発射
-    if tmr % (50 * 5) == 0:
+    if tmr % (50 * 3) == 0:
         bombs = []
         center_x = 150  # 弾幕の中心X座標（敵から）
         center_y = HEIGHT // 2  # 弾幕の中心Y座標（画面中央）
-        num_bombs = 10  # 三日月状の弾の数
+        num_bombs = 7 # 三日月状の弾の数
         angle_offset = math.radians(15)  # 各弾の角度間隔
 
         for i in range(num_bombs):
@@ -167,7 +166,7 @@ def stage1(bird_rct, screen, tmr):
             vx = bomb_speed * math.cos(angle)*-1
             vy = bomb_speed * math.sin(angle)
             bomb = {
-                "rect": pg.Rect(center_x, center_y, 10, 10),  # 弾の矩形（小さい円形）
+                "rect": pg.Rect(center_x, center_y, 15, 15),  # 弾の矩形（小さい円形）
                 "vx": vx,
                 "vy": vy
             }
@@ -204,7 +203,7 @@ def skill():
 def main():
     pg.display.set_caption("避けろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
-    bg_img = pg.transform.rotozoom(pg.image.load("fig/bg.png"),0,1.9)    
+    bg_img = pg.transform.rotozoom(pg.image.load("fig/bg.jpg"),0,1.0)    
     bird = Bird([WIDTH/2, HEIGHT/2])
     stage = 1
     
