@@ -7,7 +7,7 @@ import time
 
 WIDTH, HEIGHT = 1100, 650
 start_time = None  
-time_limit = 10 
+time_limit = 6
 DELTA = {pg.K_UP:   ( 0,-5),
          pg.K_DOWN: ( 0,+5),
          pg.K_LEFT: (-5, 0),
@@ -166,61 +166,53 @@ def stageEX():
 def timescore(screen, stage):
     global start_time
     if start_time is None:
-        start_time = time.time()  # タイマー開始
+        start_time = time.time() 
 
     spent_time = time.time() - start_time
     end_time = max(0, time_limit - spent_time)
 
     font = pg.font.Font(None, 36)
-    time_text = font.render(f"Time: {int(end_time)}s", True, (255, 255, 255))
+    time_text = font.render(f" Time : {int(end_time)} s", True, (255, 255, 255))
     screen.blit(time_text, (10, 10))
 
     # EXステージでのクリア表示
     if stage == 4 and end_time <= 0:
         black_scr = pg.Surface((WIDTH, HEIGHT))
-        pg.draw.rect(black_scr, (0, 0, WIDTH, HEIGHT))
+        pg.draw.rect(black_scr, (0, 0, 0), black_scr.get_rect())
         black_scr.set_alpha(180)
         screen.blit(black_scr, (0, 0))
 
-        kk_img = pg.transform.rotozoom(pg.image.load("fig/8.png"), 0, 0.9)
+        kk_img = pg.transform.rotozoom(pg.image.load("fig/6.png"), 0, 0.9)
         kk_rct = kk_img.get_rect()
-        kk_rct.center = WIDTH / 2 + 180, HEIGHT / 2
+        kk_rct.center = WIDTH / 2 + 200, HEIGHT / 2
         screen.blit(kk_img, kk_rct)
-        kk_rct.center = WIDTH / 2 - 180, HEIGHT / 2
+        kk_rct.center = WIDTH / 2 - 200, HEIGHT / 2
         screen.blit(kk_img, kk_rct)
 
         clear_font = pg.font.Font(None, 80)
-        clear_text = clear_font.render("クリア", True, (255, 255, 255))
-        clear_text_rect = clear_text.get_rect()
-        clear_text_rect.center = WIDTH / 2, HEIGHT / 2
-        screen.blit(clear_text, clear_text_rect)
+        clear_text = clear_font.render("Game clear!!", True, (255, 0, 0))
+        clear_rect = clear_text.get_rect()
+        clear_rect.center = WIDTH / 2, HEIGHT / 2
+        screen.blit(clear_text, clear_rect)
         pg.display.update()
 
-        # 'n' キー待機
-        waiting = True
-        while waiting:
-            for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    pg.quit()
-                    sys.exit()
-                elif event.type == pg.KEYDOWN and event.key == pg.K_n:
-                    waiting = False
-                    start_time = None
-
-        return stage + 1  # ここでステージ更新を停止または調整
+        time.sleep(3)
+        pg.quit()
+        sys.exit() 
 
     elif end_time <= 0:
-        # 次のステージへの移行とタイマーリセット
         black_scr = pg.Surface((WIDTH, HEIGHT))
         black_scr.fill((0, 0, 0))
         black_scr.set_alpha(180)
         screen.blit(black_scr, (0, 0))
-
-        msg = font.render("Please Press 'N'", True, (255, 255, 255))
-        screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, HEIGHT // 2))
+    
+        msg_font = pg.font.Font(None, 40)
+        msg_text = msg_font.render("Press 'N' to proceed to the next stage", True, (255, 255, 255))
+        msg_rect = msg_text.get_rect()
+        msg_rect.center = WIDTH / 2, HEIGHT / 2
+        screen.blit(msg_text, msg_rect)
         pg.display.update()
 
-        # 'n' キー待機
         waiting = True
         while waiting:
             for event in pg.event.get():
@@ -234,6 +226,7 @@ def timescore(screen, stage):
         return stage + 1
 
     return stage
+
 
 
 def skill():
