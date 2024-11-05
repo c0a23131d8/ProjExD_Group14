@@ -7,6 +7,8 @@ import math
 
 
 WIDTH, HEIGHT = 1100, 650
+start_time = None  
+time_limit = 60
 DELTA = {pg.K_UP: (0, -5),
          pg.K_DOWN: (0, +5),
          pg.K_LEFT: (-5, 0),
@@ -121,7 +123,6 @@ def enemy(num, screen: pg.surface):
         en_rct1.centery = HEIGHT/2
         screen.blit(en_img1,en_rct1)
         
-
     elif num == 2:
         en_img2 = pg.transform.rotozoom(pg.image.load("fig/en1.png"), 0, 0.4)
         en_rct2 = en_img2.get_rect()
@@ -196,10 +197,74 @@ def stage3():
 def stageEX():
     return 0
 
-def timescore():
+def timescore(screen, stage):
+    global start_time
+    if start_time is None:
+        start_time = time.time() 
+
+    spent_time = time.time() - start_time
+    end_time = max(0, time_limit - spent_time)
+
+    font = pg.font.Font(None, 36)
+    time_text = font.render(f" Time : {int(end_time)} s", True, (255, 255, 255))
+    screen.blit(time_text, (10, 10))
+
+    # EXステージでのクリア表示
+    if stage == 4 and end_time <= 0:
+        black_scr = pg.Surface((WIDTH, HEIGHT))
+        pg.draw.rect(black_scr, (0, 0, 0), black_scr.get_rect())
+        black_scr.set_alpha(180)
+        screen.blit(black_scr, (0, 0))
+
+        kk_img = pg.transform.rotozoom(pg.image.load("fig/6.png"), 0, 0.9)
+        kk_rct = kk_img.get_rect()
+        kk_rct.center = WIDTH / 2 + 200, HEIGHT / 2
+        screen.blit(kk_img, kk_rct)
+        kk_rct.center = WIDTH / 2 - 200, HEIGHT / 2
+        screen.blit(kk_img, kk_rct)
+
+        clear_font = pg.font.Font(None, 80)
+        clear_text = clear_font.render("Game clear!!", True, (255, 0, 0))
+        clear_rect = clear_text.get_rect()
+        clear_rect.center = WIDTH / 2, HEIGHT / 2
+        screen.blit(clear_text, clear_rect)
+        pg.display.update()
+
+        time.sleep(3)
+        pg.quit()
+        sys.exit() 
+
+    elif end_time <= 0:
+        black_scr = pg.Surface((WIDTH, HEIGHT))
+        black_scr.fill((0, 0, 0))
+        black_scr.set_alpha(180)
+        screen.blit(black_scr, (0, 0))
+    
+        msg_font = pg.font.Font(None, 40)
+        msg_text = msg_font.render("Press 'N' to proceed to the next stage", True, (255, 255, 255))
+        msg_rect = msg_text.get_rect()
+        msg_rect.center = WIDTH / 2, HEIGHT / 2
+        screen.blit(msg_text, msg_rect)
+        pg.display.update()
+
+        waiting = True
+        while waiting:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
+                    sys.exit()
+                elif event.type == pg.KEYDOWN and event.key == pg.K_n:
+                    waiting = False
+                    start_time = None
+
+        return stage + 1
+
+    return stage
+
+
+
+def skill():
     return 0
-
-
 
 def main():
     pg.display.set_caption("避けろ！こうかとん")
@@ -232,6 +297,13 @@ def main():
         enemy(stage, screen)
         if stage == 1:
             stage1(bird.rct, screen, tmr)
+        sum_mv = [0, 0]
+
+        
+
+        bird.update(key_lst, screen)
+        enemy(stage,screen)
+        stage = timescore(screen, stage)
         pg.display.update()
         tmr += 1
         clock.tick(50)
@@ -241,5 +313,5 @@ if __name__ == "__main__":
     main()
     pg.quit()
     sys.exit()
-# a
+
 
