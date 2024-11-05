@@ -10,7 +10,7 @@ import math
 
 WIDTH, HEIGHT = 1100, 650
 start_time = None  
-time_limit = 6
+time_limit = 60
 DELTA = {pg.K_UP: (0, -5),
          pg.K_DOWN: (0, +5),
          pg.K_LEFT: (-5, 0),
@@ -568,10 +568,10 @@ def main():
         key_lst = pg.key.get_pressed()
         bird.update(key_lst, screen)
 
-        # 30秒後にバリアが有効、60秒後に無敵が有効
-        if elapsed_time > 30 and not bird.has_barrier:
+        # 20秒後にバリアが有効、40秒後に無敵が有効
+        if elapsed_time > 20 and not bird.has_barrier:
             bird.has_barrier = True
-        if elapsed_time > 60 and not bird.is_invincible:
+        if elapsed_time > 40 and not bird.is_invincible:
             bird.is_invincible = True
 
         enemy(stage, screen)
