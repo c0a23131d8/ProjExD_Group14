@@ -6,6 +6,11 @@ import time
 import math
 
 WIDTH, HEIGHT = 1100, 650
+DELTA = {pg.K_UP:   ( 0,-5),
+         pg.K_DOWN: ( 0,+5),
+         pg.K_LEFT: (-5, 0),
+         pg.K_RIGHT:(+5, 0),
+         }
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -30,7 +35,13 @@ class Ball:
         if self.rect.left > WIDTH or self.rect.right < 0 or self.rect.top > HEIGHT or self.rect.bottom < 0:
             return False  # 削除フラグ
         return True
-
+    
+# ボールとこうかとんの円形当たり判定を実装
+def is_colliding(circle1, circle2):
+    # 2つの円の中心間の距離を計算
+    distance = math.hypot(circle1.centerx - circle2.centerx, circle1.centery - circle2.centery)
+    # 2つの円の半径の合計が距離以下であれば衝突
+    return distance <= (circle1.width / 2 + circle2.width / 2)
 
 def check_bound(obj_rct: pg.rect) -> tuple[bool, bool]:
     yoko, tate = True, True
@@ -98,31 +109,80 @@ def gameover(screen):
     pg.display.update()
     time.sleep(5)
 
-def stage2(screen: pg.Surface, bird: Bird, balls: list):###########################st02
-    # イデアの画像を表示
-    idea_img = pg.transform.rotozoom(pg.image.load("fig/en1.png"), 0, 0.5)
-    idea_rect = idea_img.get_rect(center=(WIDTH - 100, HEIGHT // 2)) 
-    screen.blit(idea_img, idea_rect)
+def enemy(num,screen: pg.surface):
+    if num == 1:
+        en_img1 = pg.transform.rotozoom(pg.image.load("fig/DQMJ2.webp"),0,0.6)
+        en_rct1 = en_img1.get_rect()
+        en_rct1.centerx = 150
+        en_rct1.centery = HEIGHT/2
+        screen.blit(en_img1,en_rct1)
+        stage1()
 
-    # こうかとんに向かってボールを発射
-    if random.random() < 0.25:  # 50%の確率で新しいボールを生成
-        ball = Ball(idea_rect.center, bird.rct.center)  # 左端のイデアの位置からこうかとんに向かって発射
+    elif num == 2:
+        en_img2 = pg.transform.rotozoom(pg.image.load("fig/en1.png"),0,0.4)
+        en_rct2 = en_img2.get_rect()
+        en_rct2.centerx = WIDTH-150
+        en_rct2.centery = HEIGHT/2
+        screen.blit(en_img2,en_rct2)
+      
+
+    elif num == 3:
+        en_img3 = pg.transform.rotozoom(pg.image.load("fig/en5.png"),0,1)
+        en_img4 = pg.transform.rotozoom(pg.image.load("fig/en6.png"),0,1)
+        en_rct3 = en_img3.get_rect()
+        en_rct3.centerx = 150
+        en_rct3.centery = HEIGHT/2
+        en_rct4 = en_img4.get_rect()
+        en_rct4.centerx = WIDTH-150
+        en_rct4.centery = HEIGHT/2
+        screen.blit(en_img3,en_rct3)
+        screen.blit(en_img4,en_rct4)
+        stage3()
+
+    elif num == 4:
+        en_img5 = pg.transform.rotozoom(pg.image.load("fig/en7.png"),0,0.6)
+        en_rct5 = en_img5.get_rect()
+        en_rct5.centerx = 150
+        en_rct5.centery = HEIGHT/2
+        screen.blit(en_img5,en_rct5)
+        stageEX()
+def stage1():
+    return 0
+
+def stage2(screen: pg.Surface, bird: Bird, balls: list):
+    # 8%の確率で新しいボールを生成する
+    if random.random() < 0.08:
+        # ボールの発射位置を画面右端の上下50ピクセル以内でランダムに設定
+        launch_y = HEIGHT // 2 + random.randint(-50, 50)
+        # 新しいボールを生成し、こうかとんの中心をターゲットに設定
+        ball = Ball((WIDTH - 100, launch_y), bird.rct.center)
+        # ボールリストに生成したボールを追加
         balls.append(ball)
-
-    # ボールを更新し、画面に表示する
     for ball in balls[:]:
         if not ball.update(screen):
-            balls.remove(ball)  # 画面外に出たボールをリストから削除
-        if ball.rect.colliderect(bird.rct):
-            gameover(screen)  # 衝突時にゲームオーバー
+            balls.remove(ball)
+        if is_colliding(ball.rect, bird.rct):
+            gameover(screen)
             return
 
+def stage3():
+    return 0
+
+def stageEX():
+    return 0
+
+def timescore():
+    return 0
+
+def skill():
+    return 0
 def main():
     pg.display.set_caption("避けろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.transform.rotozoom(pg.image.load("fig/bg.png"), 0, 1.9)
     bird = Bird([WIDTH / 2, HEIGHT / 2])
-    
+    stage = 2
+
     clock = pg.time.Clock()
     tmr = 0
     balls = []  # ボールのリスト
@@ -134,9 +194,22 @@ def main():
         screen.blit(bg_img, [0, 0]) 
 
         key_lst = pg.key.get_pressed()
-        bird.update(key_lst, screen)
-        stage2(screen, bird, balls)  # stage2にscreen, bird, ballsを渡す
+        sum_mv =[0,0]
 
+
+        for key,tpl in DELTA.items():
+            if key_lst[key]:
+                sum_mv[0] += tpl[0]
+                sum_mv[1] += tpl[1]
+        bird.update(key_lst, screen)
+        enemy(stage,screen)
+        if stage == 1:
+            stage1()
+        elif stage == 2:
+            stage2(screen, bird, balls)  # stage2にscreen, bird, ballsを渡す
+
+        timescore()
+        skill()
         pg.display.update()
         tmr += 1
         clock.tick(50)
