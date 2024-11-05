@@ -3,6 +3,10 @@ import pygame as pg
 import random
 import sys
 import time
+import pygame
+import random
+import math
+
 
 
 WIDTH, HEIGHT = 1100, 650
@@ -172,7 +176,7 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.transform.rotozoom(pg.image.load("fig/bg.png"),0,1.9)    
     bird = Bird([WIDTH/2, HEIGHT/2])
-    stage = 1
+    stage = 4
     
     clock = pg.time.Clock()
     tmr = 0
