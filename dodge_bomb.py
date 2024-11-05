@@ -7,7 +7,7 @@ import time
 
 WIDTH, HEIGHT = 1100, 650
 start_time = None  
-time_limit = 6
+time_limit = 60
 DELTA = {pg.K_UP:   ( 0,-5),
          pg.K_DOWN: ( 0,+5),
          pg.K_LEFT: (-5, 0),
