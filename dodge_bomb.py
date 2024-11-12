@@ -10,7 +10,7 @@ import math
 
 WIDTH, HEIGHT = 1100, 650
 start_time = None  
-time_limit = 60
+time_limit = 50
 DELTA = {pg.K_UP: (0, -5),
          pg.K_DOWN: (0, +5),
          pg.K_LEFT: (-5, 0),
@@ -145,6 +145,8 @@ def gameover(screen):
     screen.blit(txt, txt_rct)
     pg.display.update()
     time.sleep(5)
+    pg.quit()
+    sys.exit() 
 
 def enemy(num, screen: pg.surface):
     if num == 1:
@@ -160,7 +162,6 @@ def enemy(num, screen: pg.surface):
         en_rct2.centerx = WIDTH-150
         en_rct2.centery = HEIGHT/2
         screen.blit(en_img2,en_rct2)
-        stage2()
 
     elif num == 3:
         en_img3 = pg.transform.rotozoom(pg.image.load("fig/en5.png"),0,1)
@@ -234,67 +235,51 @@ def stage2(screen: pg.Surface, bird: Bird, balls: list):
             gameover(screen)
             return
 
-def stage3(screen,en_rct3,en_rct4):
+def stage3(screen, en_rct3, en_rct4):
+    global bird, bombs  # main関数で定義されたbirdとbombsを参照
 
-    def create_bomb_surfaces_and_accelerations() -> tuple[list[pg.Surface], list[int]]:
-        bb_imgs = []
-        bb_accs = [a for a in range(1, 11)]
-        for r in range(1, 11):
-            bb_img = pg.Surface((20*r, 20*r), pg.SRCALPHA)
-            pg.draw.circle(bb_img, (255, 0, 0), (10*r, 10*r), 10*r)
-            bb_imgs.append(bb_img)
-        return bb_imgs, bb_accs
+    bomb_speed = 8       # 弾の速度
+    num_bombs = 1       # 円形に配置する弾の数
+    angle_offset = 2 * math.pi / num_bombs  # 各弾の角度間隔
+    last_angle_change =9000
+    # 5秒ごとに基準角度を変えるための処理
+    if time.time() - last_angle_change >= 5:
+        base_angle = random.uniform(0, 2 * math.pi)  # ランダムな基準角度を生成
+        last_angle_change = time.time()  # 最後に角度を変えた時間を更新
 
-    def calculate_velocity(kk_rct: pg.Rect, bb_rct: pg.Rect) -> tuple[float, float]:
-        diff_x = kk_rct.centerx - bb_rct.centerx
-        diff_y = kk_rct.centery - bb_rct.centery
-        distance = math.sqrt(diff_x**2 + diff_y**2)
-        if distance != 0:
-            norm = 5
-            new_vx = (diff_x / distance) * norm
-            new_vy = (diff_y / distance) * norm
-        else:
-            new_vx, new_vy = 0, 0
-        return new_vx, new_vy
+    # 敵から円形に弾を発射
+    for en_rct in [en_rct3, en_rct4]:
+        center_x, center_y = en_rct.center
+        for i in range(num_bombs):
+            angle = base_angle + angle_offset * i  # 基準角度を元に弾の角度を計算
+            vx = bomb_speed * math.cos(angle)
+            vy = bomb_speed * math.sin(angle)
+            bomb = {
+                "rect": pg.Rect(center_x, center_y, 30, 30),  # 弾の矩形
+                "vx": vx,
+                "vy": vy
+            }
+            bombs.append(bomb)  # 生成した弾をbombsリストに追加
 
-    kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
-    bb_imgs, bb_accs = create_bomb_surfaces_and_accelerations()
-    kk_rct = kk_img.get_rect()
-    kk_rct.center = 500, 300
-    
-    bomb_list = []
+    # 各弾の位置を更新し、画面に描画
+    for bomb in bombs[:]:  # bombsリストを走査
+        bomb["rect"].move_ip(bomb["vx"], bomb["vy"])  # 弾を移動
+        pg.draw.ellipse(screen, (255, 0, 0), bomb["rect"])  # 弾を描画
 
-    def create_new_bomb():
-        bb_rct = bb_imgs[0].get_rect()
-        bb_rct.centerx = random.randint(0, WIDTH)
-        bb_rct.centery = random.randint(0, HEIGHT)
-        bomb_list.append({"rect": bb_rct, "step": 0})
+        # こうかとんと弾の衝突判定
+        if bird.rct.colliderect(bomb["rect"]):
+            if not bird.is_invincible:  # 無敵モードでないときのみゲームオーバー
+                gameover(screen)
+                return
 
-    clock = pg.time.Clock()
-    tmr = 0
+        # 画面外に出た弾をリストから削除
+        if not screen.get_rect().colliderect(bomb["rect"]):
+            bombs.remove(bomb)
 
-    create_new_bomb()  # 最初の爆弾を生成
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            return
+    # こうかとん（プレイヤーキャラクター）を再描画
+    screen.blit(bird.img, bird.rct)
 
-    # 時間経過で新しい爆弾を追加
-    if tmr % 1000 == 0:  # 1000フレームごとに新しい爆弾を生成
-        create_new_bomb()
-
-    for bomb in bomb_list:
-        bomb["step"] = min(tmr // 500, 9)
-        bb_img = bb_imgs[bomb["step"]]
-        bb_rct = bb_img.get_rect(center=bomb["rect"].center)
-
-        avx, avy = calculate_velocity(kk_rct, bb_rct)
-        bb_rct.move_ip(avx, avy)
-        bomb["rect"] = bb_rct
-        screen.blit(bb_img, bb_rct)
-
-        if kk_rct.colliderect(bb_rct) or kk_rct.colliderect(en_rct4) or kk_rct.colliderect(en_rct3):
-            gameover(screen)
-            return
+    return last_angle_change  # 更新した角度変更時間を返す
 
 def stageEX():
     global game_over, circle_bomb_timer, random_bomb_timer, cross_bomb_timer, chase_bomb_timer
@@ -545,12 +530,14 @@ def timescore(screen, stage):
     return stage
 
 def main():
+    global bird,bombs # birdをグローバル変数として定義
     pg.display.set_caption("避けろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.transform.rotozoom(pg.image.load("fig/bg.jpg"), 0, 1.0)    
     bird = Bird([WIDTH / 2, HEIGHT / 2])
-    stage = 1
+    stage = 3
     start_time = time.time()
+    bombs = []  # ボムのリスト
     
     clock = pg.time.Clock()
     tmr = 0
@@ -577,6 +564,18 @@ def main():
         enemy(stage, screen)
         if stage == 1:
             stage1(bird.rct, screen, tmr)
+        elif stage == 2:
+            bird.has_barrier = False
+            bird.is_invincible = False
+            stage2(screen,bird,balls)
+        elif stage == 3:
+            bird.has_barrier = False
+            bird.is_invincible = False
+        elif stage == 4:
+            bird.has_barrier = False
+            bird.is_invincible = False
+            stageEX()
+
         sum_mv = [0, 0]
 
         bird.update(key_lst, screen)
@@ -585,8 +584,6 @@ def main():
         pg.display.update()
         tmr += 1
         clock.tick(50)
-        if stage == 4:
-            stageEX()
 
 if __name__ == "__main__":
     pg.init()
