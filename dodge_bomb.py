@@ -10,7 +10,7 @@ import math
 
 WIDTH, HEIGHT = 1100, 650
 start_time = None  
-time_limit = 50
+time_limit = 55
 DELTA = {pg.K_UP: (0, -5),
          pg.K_DOWN: (0, +5),
          pg.K_LEFT: (-5, 0),
@@ -221,7 +221,7 @@ def stage1(bird_rct, screen, tmr):
 def stage2(screen: pg.Surface, bird: Bird, balls: list):
     # 8%の確率で新しいボールを生成する
     global time_limit
-    time_limit = 40
+    time_limit = 50
     if random.random() < 0.08:
         # ボールの発射位置を画面右端の上下50ピクセル以内でランダムに設定
         launch_y = HEIGHT // 2 + random.randint(-50, 50)
@@ -238,7 +238,7 @@ def stage2(screen: pg.Surface, bird: Bird, balls: list):
 
 def stage3(screen, en_rct3, en_rct4):
     global bird, bombs,time_limit  # main関数で定義されたbirdとbombsを参照
-    time_limit = 30
+    time_limit = 45
     bomb_speed = 8       # 弾の速度
     num_bombs = 1       # 円形に配置する弾の数
     angle_offset = 2 * math.pi / num_bombs  # 各弾の角度間隔
@@ -467,7 +467,7 @@ def stageEX():
 
 
 def timescore(screen, stage):
-    global start_time
+    global start_time, elapsed_time
     if start_time is None:
         start_time = time.time() 
 
@@ -477,6 +477,9 @@ def timescore(screen, stage):
     font = pg.font.Font(None, 36)
     time_text = font.render(f" Time : {int(end_time)} s", True, (255, 255, 255))
     screen.blit(time_text, (10, 10))
+    elapsed_time = 0
+    bird.has_barrier = False
+    bird.is_invincible = False
 
     # EXステージでのクリア表示
     if stage == 4 and end_time <= 0:
@@ -525,14 +528,12 @@ def timescore(screen, stage):
                 elif event.type == pg.KEYDOWN and event.key == pg.K_n:
                     waiting = False
                     start_time = None
-                    bird.has_barrier = False
-                    bird.is_invincible = False
         return stage + 1
 
     return stage
 
 def main():
-    global bird,bombs # birdをグローバル変数として定義
+    global bird,bombs,elapsed_time # birdをグローバル変数として定義
     pg.display.set_caption("避けろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.transform.rotozoom(pg.image.load("fig/bg.jpg"), 0, 1.0)    
@@ -544,7 +545,7 @@ def main():
     clock = pg.time.Clock()
     tmr = 0
     balls = []  # ボールのリスト
-
+    
     while True:
         elapsed_time = time.time() - start_time
         
