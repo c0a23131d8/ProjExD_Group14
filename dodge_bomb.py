@@ -182,7 +182,6 @@ def enemy(num, screen: pg.surface):
         en_rct5.centerx = 150
         en_rct5.centery = HEIGHT/2
         screen.blit(en_img5,en_rct5)
-        stageEX()
 
 def stage1(bird_rct, screen, tmr):
     global bombs
@@ -221,6 +220,8 @@ def stage1(bird_rct, screen, tmr):
 
 def stage2(screen: pg.Surface, bird: Bird, balls: list):
     # 8%の確率で新しいボールを生成する
+    global time_limit
+    time_limit = 40
     if random.random() < 0.08:
         # ボールの発射位置を画面右端の上下50ピクセル以内でランダムに設定
         launch_y = HEIGHT // 2 + random.randint(-50, 50)
@@ -236,8 +237,8 @@ def stage2(screen: pg.Surface, bird: Bird, balls: list):
             return
 
 def stage3(screen, en_rct3, en_rct4):
-    global bird, bombs  # main関数で定義されたbirdとbombsを参照
-
+    global bird, bombs,time_limit  # main関数で定義されたbirdとbombsを参照
+    time_limit = 30
     bomb_speed = 8       # 弾の速度
     num_bombs = 1       # 円形に配置する弾の数
     angle_offset = 2 * math.pi / num_bombs  # 各弾の角度間隔
@@ -524,7 +525,8 @@ def timescore(screen, stage):
                 elif event.type == pg.KEYDOWN and event.key == pg.K_n:
                     waiting = False
                     start_time = None
-
+                    bird.has_barrier = False
+                    bird.is_invincible = False
         return stage + 1
 
     return stage
@@ -535,7 +537,7 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.transform.rotozoom(pg.image.load("fig/bg.jpg"), 0, 1.0)    
     bird = Bird([WIDTH / 2, HEIGHT / 2])
-    stage = 3
+    stage = 1
     start_time = time.time()
     bombs = []  # ボムのリスト
     
@@ -565,15 +567,8 @@ def main():
         if stage == 1:
             stage1(bird.rct, screen, tmr)
         elif stage == 2:
-            bird.has_barrier = False
-            bird.is_invincible = False
             stage2(screen,bird,balls)
-        elif stage == 3:
-            bird.has_barrier = False
-            bird.is_invincible = False
         elif stage == 4:
-            bird.has_barrier = False
-            bird.is_invincible = False
             stageEX()
 
         sum_mv = [0, 0]
